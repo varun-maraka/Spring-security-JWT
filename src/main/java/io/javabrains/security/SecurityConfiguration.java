@@ -10,11 +10,14 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.LdapShaPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import io.javabrains.filters.JwtRequestFilter;
 import io.javabrains.service.MyUserDetailsService;
 
 @EnableWebSecurity
@@ -32,6 +35,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         return NoOpPasswordEncoder.getInstance();
     }
 	
+	@Autowired
+	private JwtRequestFilter jwtRequestFilter;
+	
 	@Override
 	protected void configure(HttpSecurity httpSec) throws Exception{
 		httpSec.authorizeRequests()
@@ -41,8 +47,11 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 				.antMatchers("/user").hasAnyRole("USER","ADMIN")
 				.antMatchers("/admin").hasRole("ADMIN")
 				.antMatchers("/h2-console/**").permitAll().anyRequest().authenticated() 
-				.and().formLogin();
+				.and().formLogin()
+				.and().sessionManagement()
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 		
+		httpSec.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 		httpSec.headers().frameOptions().sameOrigin();
 		httpSec.csrf().disable(); 
 		// This code make h2 database console available to access
